@@ -1,0 +1,3 @@
+[submodule "firmware/SAMG55/AWS_IoT_Zero_Touch_SAMG55/src/cryptoauthlib"]
+	path = firmware/SAMG55/AWS_IoT_Zero_Touch_SAMG55/src/cryptoauthlib
+	url = https://github.com/MicrochipTech/cryptoauthlib.git
