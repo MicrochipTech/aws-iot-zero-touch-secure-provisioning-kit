@@ -1,0 +1,6 @@
+cryptography
+boto3
+pytz
+hidapi
+pyasn1
+requests_aws4auth

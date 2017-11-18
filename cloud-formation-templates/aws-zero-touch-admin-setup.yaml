@@ -1,0 +1,73 @@
+Parameters:
+  UserName:
+    Type: String
+    Description: Username of the account the kit will be run from.
+    Default: ZTUser
+  UserPassword:
+    Type: String
+    Description: Password of the account the kit will be run from.
+    MinLength: 4
+
+Resources:
+  KitUser:
+    Type: AWS::IAM::User
+    Properties:
+      Path: "/"
+      UserName: !Ref UserName
+      LoginProfile:
+        Password: !Ref UserPassword
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSLambdaFullAccess
+        - arn:aws:iam::aws:policy/AWSIoTFullAccess
+  
+  KitUserKeyPair:
+    Type: "AWS::IAM::AccessKey"
+    Properties:
+      UserName:
+        !Ref KitUser
+  
+  ZTLambdaJITRRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - arn:aws:iam::aws:policy/AWSXrayWriteOnlyAccess
+      Path: "/"
+      Policies:
+        - PolicyName: "ZTLambdaJITRPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "iot:UpdateCertificate"
+                  - "iot:CreatePolicy"
+                  - "iot:AttachPrincipalPolicy"
+                  - "iot:CreateThing"
+                  - "iot:CreateThingType"
+                  - "iot:DescribeCertificate"
+                  - "iot:DescribeCaCertificate"
+                  - "iot:DescribeThing"
+                  - "iot:DescribeThingType"
+                  - "iot:GetPolicy"
+                Resource: "*"
+      RoleName: ZTLambdaJITRRole
+
+Outputs:
+  UserName:
+    Value: !Ref UserName
+  UserPassword:
+    Value: !Ref UserPassword
+  AccessKey:
+    Value: !Ref KitUserKeyPair
+  SecretAccessKey:
+    Value: !GetAtt KitUserKeyPair.SecretAccessKey
