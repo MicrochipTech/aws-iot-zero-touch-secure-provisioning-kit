@@ -20,8 +20,13 @@ The central hub of the kit is the SAMG55 Xplained Pro board.
 1. Plug **WINC1500 Xplained Pro** into **EXT1** on the SAMG55 Xplained Pro.
 2. Plug **OLED1 Xplained Pro** into **EXT3** on the SAMG55 Xplained Pro.
 3. Plug **CryptoAuth Xplained Pro** into **EXT4** on the SAMG55 Xplained Pro.
-   Please note, the CryptoAuth board that comes with the kit has been
-   specially configured for this kit. A generic CryptoAuth board won't work.
+   Please note, depending on when you purchased your kit, your kit may have come
+   with CryptoAuth Xplained Pro **Rev A** boards or **Rev B** boards.  Rev B
+   boards have an ATECC608A device attached and do not come pre-configured.  Extra
+   steps need to be followed to initialize the crypto-device on the board.  Begin
+   the initialization process by **running the firmware without the WINC1500 Xplained
+   Pro board attached**.  The firmware will automatically guide you through this
+   process with instructions from EDBG serial port output messages.
 4. Plug USB cable from PC into **Target USB** port on the SAMG55 Xplained Pro.
    Once the firmware is loaded, the board communicates with the scripts on the
    PC via this port as an HID device.
@@ -142,7 +147,7 @@ demonstrating this kit.
 3. Run ```ca_create_signer.py``` to sign the signer CSR with the root CA.
 4. Run ```aws_register_signer.py``` to register the signer with AWS IoT.
 
-### Provision the ATECC508A on the kit.
+### Provision the ATECCx08A on the kit.
 
 1. Run ```kit_set_wifi.py --ssid wifi-name --password wifi-password``` to
    configure wifi settings on the board. This network must have internet
@@ -158,6 +163,11 @@ demonstrating this kit.
    Pressing the buttons on the board will also update their state in the GUI.
    
 ## Releases
+
+# 2017-11-17
+- Updated firmware to v2.2.4 to bring in ATECC608A support with CryptoAuthLib 3.
+  Application now supports automatic pre-configuration of new ATECC508A and
+  ATECC608A devices.  Fixed a memory leak in the JSON parser.
 
 # 2017-9-26
 - Updated firmware to v2.2.2 to resolve DNS lookup issue
