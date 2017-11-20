@@ -8,6 +8,10 @@ http://www.microchip.com/developmenttools/productdetails.aspx?partno=at88ckecc-a
 
 ## Change Log
 
+### 2.2.4
+- Added unconfigured device auto-detection and pre-configuration. Also
+  brought in support for the ATECC608A.
+
 ### 2.2.3
 - Fixed memory leak when parsing json from shadow update delta topic
 
