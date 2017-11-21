@@ -191,7 +191,7 @@ static sint8 ecdh_derive_client_shared_secret(tstrECPoint *server_public_key,
     {
         client_public_key->u16Size = 32;
         //do the ecdh from the private key in tempkey, results put in ecdh_shared_secret
-        if(atcab_ecdh_base(ecdh_mode, 0, server_public_key->X, ecdh_shared_secret, NULL) == ATCA_SUCCESS)
+        if(atcab_ecdh_base(ecdh_mode, key_id, server_public_key->X, ecdh_shared_secret, NULL) == ATCA_SUCCESS)
         {
             status = M2M_SUCCESS;
         }
