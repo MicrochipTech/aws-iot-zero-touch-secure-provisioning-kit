@@ -263,14 +263,12 @@ def cert_signer_id_offset_length(cert, name):
 def cert_time_offset_length(cert, name):
     cert_der = encoder.encode(cert)
     cert_mod = decoder.decode(cert_der, asn1Spec=rfc2459.Certificate())[0]
-    idx = 0
-    if cert_mod['tbsCertificate']['validity'][name][idx] is None:
-        idx += 1
-    time_str = str(cert_mod['tbsCertificate']['validity'][name][idx])
+    time_str = str(cert_mod['tbsCertificate']['validity'][name].getComponent())
     time_str = chr(ord(time_str[0]) + 1) + time_str[1:]
-    cert_mod['tbsCertificate']['validity'][name] = cert_mod['tbsCertificate']['validity'][name][idx].clone(value=time_str)
+    cert_mod['tbsCertificate']['validity'][name] = cert_mod['tbsCertificate']['validity'][name].getComponent().clone(
+        value=time_str)
 
-    return {'offset':diff_offset(cert_der, encoder.encode(cert_mod)), 'length':len(time_str)}
+    return {'offset': diff_offset(cert_der, encoder.encode(cert_mod)), 'length': len(time_str)}
 
 def cert_public_key_offset_length(cert):
     pk_der = bytearray(encoder.encode(cert['tbsCertificate']['subjectPublicKeyInfo']['subjectPublicKey']))
