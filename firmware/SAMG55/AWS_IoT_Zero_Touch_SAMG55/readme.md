@@ -5,12 +5,12 @@ This is the firmware for the Zero Touch Provisioning Kit for AWS IoT Release B
 at the following web page:
 
 http://www.microchip.com/developmenttools/productdetails.aspx?partno=at88ckecc-aws-xstk-b
+https://github.com/MicrochipTech/aws-iot-zero-touch-secure-provisioning-kit
 
 ## Change Log
 
 ### 2.2.4
-- Added unconfigured device auto-detection and pre-configuration. Also
-  brought in support for the ATECC608A.
+ - Added unconfigured device auto-detection and pre-configuration. Also brought in support for the ATECC608A.
 
 ### 2.2.3
 - Fixed memory leak when parsing json from shadow update delta topic

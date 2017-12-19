@@ -6,6 +6,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from aws_kit_common import *
+from ca_create_signer_csr import add_signer_extensions
 
 def main():
     print('\nLoading signer CA CSR')
@@ -46,16 +47,9 @@ def main():
     builder = builder.not_valid_after(builder._not_valid_before.replace(year=builder._not_valid_before.year + 10))
     builder = builder.subject_name(signer_ca_csr.subject)
     builder = builder.public_key(signer_ca_csr.public_key())
-    # Add in extensions specified by CSR
-    for extension in signer_ca_csr.extensions:
-        builder = builder.add_extension(extension.value, extension.critical)
-    builder = builder.add_extension(
-        x509.SubjectKeyIdentifier.from_public_key(signer_ca_csr.public_key()),
-        critical=False)
-    issuer_ski = root_ca_cert.extensions.get_extension_for_class(x509.SubjectKeyIdentifier)
-    builder = builder.add_extension(
-        x509.AuthorityKeyIdentifier.from_issuer_subject_key_identifier(issuer_ski),
-        critical=False)
+    builder = add_signer_extensions(
+        builder=builder,
+        authority_cert=root_ca_cert)
     # Sign signer certificate with root
     signer_ca_cert = builder.sign(
         private_key=root_ca_priv_key,

@@ -2,5 +2,5 @@ cryptography
 boto3
 pytz
 hidapi
-pyasn1
+pyasn1_modules==0.1.5
 requests_aws4auth

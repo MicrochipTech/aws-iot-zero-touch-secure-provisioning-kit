@@ -26,8 +26,7 @@ The central hub of the kit is the SAMG55 Xplained Pro board.
    steps need to be followed to initialize the crypto-device on the board.  Begin
    the initialization process by **running the firmware without the WINC1500 Xplained
    Pro board attached**.  The firmware will automatically guide you through this
-   process with instructions from EDBG serial port output messages.
-4. Plug USB cable from PC into **Target USB** port on the SAMG55 Xplained Pro.
+   process with instructions from EDBG serial port output messages.4. Plug USB cable from PC into **Target USB** port on the SAMG55 Xplained Pro.
    Once the firmware is loaded, the board communicates with the scripts on the
    PC via this port as an HID device.
 5. Plug USB cable from PC into **EDBG USB** port on the SAMG55 Xplained Pro.
@@ -147,7 +146,7 @@ demonstrating this kit.
 3. Run ```ca_create_signer.py``` to sign the signer CSR with the root CA.
 4. Run ```aws_register_signer.py``` to register the signer with AWS IoT.
 
-### Provision the ATECCx08A on the kit.
+### Provision the ATECC508A on the kit.
 
 1. Run ```kit_set_wifi.py --ssid wifi-name --password wifi-password``` to
    configure wifi settings on the board. This network must have internet
@@ -164,13 +163,19 @@ demonstrating this kit.
    
 ## Releases
 
-# 2017-11-17
-- Updated firmware to v2.2.4 to bring in ATECC608A support with CryptoAuthLib 3.
-  Application now supports automatic pre-configuration of new ATECC508A and
-  ATECC608A devices.  Fixed a memory leak in the JSON parser.
+### 2017-12-19
+- Updated CA scripts to use fixed set of extensions for CSR and certificate
+- Set fixed version of pyasn1_modules as new version broke cert2certdef.py
 
-# 2017-9-26
+### 2017-11-17
+- Updated firmware to v2.2.4 to bring in ATECC608A support with CryptoAuthLib
+  release 3.
+- Firmware now supports automatic pre-configuration of new ATECC508A and
+  ATECC608A devices.
+- Fixed a memory leak in the JSON parsing.
+
+### 2017-9-26
 - Updated firmware to v2.2.2 to resolve DNS lookup issue
 
-# 2017-9-18
+### 2017-9-18
 - Initial release of software and firmware v2.2.1
