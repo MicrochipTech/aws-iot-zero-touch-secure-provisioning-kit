@@ -35,7 +35,10 @@ def read_kit_info():
     if not os.path.isfile(KIT_INFO_FILENAME):
         return {}
     with open(KIT_INFO_FILENAME, 'r') as f:
-        return json.loads(f.read())
+        json_str = f.read()
+        if not json_str:
+            return {} # Empty file
+        return json.loads(json_str)
 
 def save_kit_info(kit_info):
     with open(KIT_INFO_FILENAME, 'w') as f:
@@ -104,3 +107,25 @@ def device_cert_sn(size, builder):
     raw_sn[0] = raw_sn[0] & 0x7F # Force MSB bit to 0 to ensure positive integer
     raw_sn[0] = raw_sn[0] | 0x40 # Force next bit to 1 to ensure the integer won't be trimmed in ASN.1 DER encoding
     return int.from_bytes(raw_sn, byteorder='big', signed=False)
+
+def datetime_to_iso8601(dt):
+    tz = dt.strftime('%z')
+    if tz:
+        tz = tz[0:3] + ':' + tz[3:6] # Add colon between timezone minutes and seconds
+    return dt.strftime("%Y-%m-%dT%H:%M:%S") + tz
+
+def all_datetime_to_iso8601(d):
+    """Traverse a dict or list and convert all datetime objects to ISO8601 strings."""
+    if isinstance(d, dict):
+        for key,value in d.items():
+            if hasattr(value, 'strftime'):
+                d[key] = datetime_to_iso8601(value)
+            if isinstance(value, dict) or isinstance(value, list):
+                d[key] = all_datetime_to_iso8601(value)
+    elif isinstance(d, list):
+        for i in range(len(d)):
+            if hasattr(d[i], 'strftime'):
+                d[i] = datetime_to_iso8601(d[i])
+            if isinstance(d[i], dict) or isinstance(d[i], list):
+                d[i] = all_datetime_to_iso8601(d[i])
+    return d

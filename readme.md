@@ -163,6 +163,9 @@ demonstrating this kit.
    
 ## Releases
 
+### 2018-03-19
+- Updated aws_register_signer.py to account for new datetime fields from AWS
+
 ### 2017-12-19
 - Updated CA scripts to use fixed set of extensions for CSR and certificate
 - Set fixed version of pyasn1_modules as new version broke cert2certdef.py
