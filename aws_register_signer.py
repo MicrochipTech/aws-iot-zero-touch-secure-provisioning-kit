@@ -70,7 +70,7 @@ def main():
     builder = builder.serial_number(random_cert_sn(16))
     builder = builder.issuer_name(signer_ca_cert.subject)
     builder = builder.not_valid_before(datetime.datetime.now(tz=pytz.utc))
-    builder = builder.not_valid_after(builder._not_valid_before.replace(day=builder._not_valid_before.day + 1))
+    builder = builder.not_valid_after(builder._not_valid_before + datetime.timedelta(days=1))
     builder = builder.subject_name(x509.Name([x509.NameAttribute(x509.oid.NameOID.COMMON_NAME, reg_code)]))
     builder = builder.public_key(signer_ca_cert.public_key())
     signer_ca_ver_cert = builder.sign(
