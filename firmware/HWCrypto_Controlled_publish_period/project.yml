@@ -1,0 +1,5 @@
+---
+config:
+    ZERYNTH_HWCRYPTO_ATECCx08A: true
+    ZERYNTH_SSL: true
+...

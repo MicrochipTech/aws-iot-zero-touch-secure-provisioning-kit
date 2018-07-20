@@ -1,0 +1,10 @@
+{
+    "endpoint": "",
+    "i2caddr": 88,
+    "i2cdrv": 0,
+    "keyslot": 2,
+    "mqttid": "",
+    "thingname": "",
+    "wifi_password": "",
+    "wifi_ssid": ""
+}
