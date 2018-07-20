@@ -17,11 +17,15 @@ SIGNER_CA_CSR_FILENAME  = SIGNER_CA_FILENAME_BASE + '.csr'
 SIGNER_CA_CERT_FILENAME = SIGNER_CA_FILENAME_BASE + '.crt'
 SIGNER_CA_VER_CERT_FILENAME = SIGNER_CA_FILENAME_BASE + '-verification.crt'
 
-KIT_INFO_FILENAME = 'kit-info.json'
-
 DEVICE_FILENAME_BASE  = 'device'
 DEVICE_CSR_FILENAME   = DEVICE_FILENAME_BASE + '.csr'
 DEVICE_CERT_FILENAME  = DEVICE_FILENAME_BASE + '.crt'
+
+ZERYNTH_DEMO_PROJECT_PATH = os.path.join('firmware', 'ZeroTouchDemo')
+ZERYNTH_CONTROLLED_PROJECT_PATH = os.path.join('firmware', 'HWCrypto_Controlled_publish_period')
+ZERYNTH_THING_CONFIGURATION_FILENAME = 'thing.conf.json'
+ZERYNTH_DEMO_THING_CONFIGURATION = os.path.join(ZERYNTH_DEMO_PROJECT_PATH, ZERYNTH_THING_CONFIGURATION_FILENAME) 
+ZERYNTH_CONTROLLED_THING_CONFIGURATION = os.path.join(ZERYNTH_CONTROLLED_PROJECT_PATH, ZERYNTH_THING_CONFIGURATION_FILENAME) 
 
 KP_APP_CMD = 'board:app'
 
@@ -32,17 +36,20 @@ class AWSZTKitError(RuntimeError):
     pass
 
 def read_kit_info():
-    if not os.path.isfile(KIT_INFO_FILENAME):
+    if not os.path.isfile(ZERYNTH_DEMO_THING_CONFIGURATION):
         return {}
-    with open(KIT_INFO_FILENAME, 'r') as f:
+    with open(ZERYNTH_DEMO_THING_CONFIGURATION, 'r') as f:
         json_str = f.read()
         if not json_str:
             return {} # Empty file
         return json.loads(json_str)
 
 def save_kit_info(kit_info):
-    with open(KIT_INFO_FILENAME, 'w') as f:
+    with open(ZERYNTH_DEMO_THING_CONFIGURATION, 'w') as f:
         f.write(json.dumps(kit_info, indent=4, sort_keys=True))
+    with open(ZERYNTH_CONTROLLED_THING_CONFIGURATION, 'w') as f:
+        f.write(json.dumps(kit_info, indent=4, sort_keys=True))
+
 
 def load_or_create_key(filename, verbose=True):
     # Create or load a root CA key pair

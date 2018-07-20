@@ -105,10 +105,9 @@ def main():
     # Replace the response datetime objects with an ISO8601 string so the dict is json serializable
     all_datetime_to_iso8601(response)
 
-    kit_info['certificateDescription'] = response['certificateDescription']
     response = aws_iot.describe_endpoint()
-    kit_info['endpointAddress'] = response['endpointAddress']
-    print('    Hostname: ' + kit_info['endpointAddress'])
+    kit_info['endpoint'] = response['endpointAddress']
+    print('    Hostname: ' + kit_info['endpoint'])
 
     save_kit_info(kit_info)
 

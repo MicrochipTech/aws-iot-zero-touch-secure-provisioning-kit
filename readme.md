@@ -1,17 +1,8 @@
-# Microchip Zero Touch Secure Provisioning Kit for AWS IoT
-
-This package contains all the files to run the Microchip Zero Touch Secure
-Provisioning Kit for AWS IoT.
-
-Latest product information can be found at
-http://www.microchip.com/developmenttools/productdetails.aspx?partno=at88ckecc-aws-xstk-b
-
-The full user guide can be found at http://microchipdeveloper.com/iot:ztpk
+# Zerynth Microchip Zero Touch Secure Provisioning Kit for AWS IoT
 
 ## Quick Setup
 
-This section serves as a quick reference for the setup required. The full user
-manual referenced above will give more detailed instructions.
+This section serves as a quick reference for the setup required.
 
 ### Hardware Setup
 
@@ -20,44 +11,27 @@ The central hub of the kit is the SAMG55 Xplained Pro board.
 1. Plug **WINC1500 Xplained Pro** into **EXT1** on the SAMG55 Xplained Pro.
 2. Plug **OLED1 Xplained Pro** into **EXT3** on the SAMG55 Xplained Pro.
 3. Plug **CryptoAuth Xplained Pro** into **EXT4** on the SAMG55 Xplained Pro.
-   Please note, depending on when you purchased your kit, your kit may have come
-   with CryptoAuth Xplained Pro **Rev A** boards or **Rev B** boards.  Rev B
-   boards have an ATECC608A device attached and do not come pre-configured.  Extra
-   steps need to be followed to initialize the crypto-device on the board.  Begin
-   the initialization process by **running the firmware without the WINC1500 Xplained
-   Pro board attached**.  The firmware will automatically guide you through this
-   process with instructions from EDBG serial port output messages.4. Plug USB cable from PC into **Target USB** port on the SAMG55 Xplained Pro.
-   Once the firmware is loaded, the board communicates with the scripts on the
-   PC via this port as an HID device.
-5. Plug USB cable from PC into **EDBG USB** port on the SAMG55 Xplained Pro.
+4. Plug USB cable from PC into **EDBG USB** port on the SAMG55 Xplained Pro.
    This port is how the firmware is loaded/updated and also exposes a serial
-   port (COM port) that outputs debug/status information (115200 baud).
+   port (COM port, 115200 baud).
    
 ### Firmware Setup
 
-While the revision B kit comes with the appropriate firmware loaded, the
-original (rev A) kit will need firmware updates to work.  Additionally, new
-firmware updates may be released.
-
-1. Update the **WINC1500 firmware to 19.5.2**. Use Atmel Studio to find create
+1. Update the **WINC1500 firmware to 19.5.4**. Use Atmel Studio to find create
    a new ASF Example Project for the **WINC1500 Firmware Update Project
-   (v19.5.2) - SAMG55 Xplained Pro**. Run the
+   (v19.5.4) - SAMG55 Xplained Pro**. Run the
    **samg55_xplained_pro_firmware_update.bat** batch script from the src
    folder to update.
-2. Update the **SAMG55 firmware** to the latest version in the firmware
-   folder of this package.
    
 ### Software Setup
 
-1. Install [**AWS CLI**](https://aws.amazon.com/cli/). Used to configure AWS
+1. Install [**Zerynth Studio**](https://www.zerynth.com/zerynth-studio/).
+2. Install [**AWS CLI**](https://aws.amazon.com/cli/). Used to configure AWS
    credentials for the python scripts.
-2. Install serial terminal emulator, like [**PuTTY**](https://www.chiark.greenend.org.uk/~sgtatham/putty/latest.html).
-   Used to view status/debug information from the SAMG55.
-3. Install [**Visual C++ 2015 Build Tools**](http://landinghub.visualstudio.com/visual-cpp-build-tools).
-   This is required for one of the python packages (hidapi) installed later.
-4. Install [**Python 3**](https://www.python.org). Make sure to include
-   **pip** and **tcl/tk**. PC side work is all done from python scripts.
-5. Install **Python packages (```pip install –r requirements.txt```)**
+3. Install [**Python 3**](https://www.python.org). Make sure to include
+   **pip** and **tcl/tk**. PC side work is done from the Zerynth Toolchain but also from a few
+   custom Python scripts.
+4. Install **Python packages (```pip install –r requirements.txt```)**
    required for the kit python scripts.
    
 ### AWS Setup
@@ -116,9 +90,6 @@ cloud-formation-templates folder.
 
 ## Quick Demo
 
-This section serves as a quick reference for the steps required. The full user
-manual referenced above will give more detailed instructions.
-
 ### Configure AWS for Just In Time Registration (JITR)
 
 These steps will be performed from the IAM user, ZTUser, created for
@@ -146,15 +117,30 @@ demonstrating this kit.
 3. Run ```ca_create_signer.py``` to sign the signer CSR with the root CA.
 4. Run ```aws_register_signer.py``` to register the signer with AWS IoT.
 
-### Provision the ATECC508A on the kit.
+### Provision the ATECC508A on the kit
 
-1. Run ```kit_set_wifi.py --ssid wifi-name --password wifi-password``` to
-   configure wifi settings on the board. This network must have internet
-   access with ports 123 (UDP, time server) and 8883 (TCP, secure MQTT) open.
+1. Register and virtualize the device.
+2. Run ```ztc device discover --matchdb``` to retrieve the device id.
+3. Run ```ztc device alias put RETRIEVEDID my_g55 xplained_samg55```  to assign the alias ```my_g55``` to the device.
+4. Run ```ztc provisioning uplink-config-firmware my_g55 --i2caddr 0x0``` to prepare the device for provisioning (reset the device when asked to).
+5. Run ```ztc provisioning crypto-scan my_g55``` to obtain the address of the crypto element.
+6. Run ```ztc provisioning write-config my_g55 configuration.bin --lock True``` to write desired configuration to the device. **This command LOCKS the crypto element and sets the address to 0x58, this procedure is IRREVERSIBLE**
+7. Manually reset the device and run again ```ztc provisioning crypto-scan my_g55``` to check if the new address has been assigned.
+8. Run ```ztc provisioning gen-private my_g55 2``` to generate a private key inside slot 2 of the crypto element.
+9. Run ```ztc provisioning get-csr my_g55 2 'C=IT,L=Pisa,O=Zerynth' -o device.csr``` to generate device CSR.
 
-2. Run ```kit_provision.py``` to provision the ATECC508A on the board for AWS
-   IoT. After this command, the board will automatically attempt to connect to
-   AWS IoT.
+10. Run ```kit_provision.py --ssid wifi-name --password wifi-password``` to start provisioning the crypto element.
+11. Run ```ztc provisioning store-public my_g55 13 root-ca.crt.public``` to store root-ca public key onto the crypto element.
+12. Run ```ztc provisioning store-certificate my_g55 device device.crt``` to store device certificate.
+13. Run ```ztc provisioning store-certificate my_g55 signer signer-ca.crt``` to store signer certificate.
+
+### Uplink Zerynth Project
+
+Open Zerynth Studio.
+**From the Device Management Widget switch to Advanced Mode and then back to Auto mode to force alias refresh.**
+Open ZeroTouchDemo project (firmware/ZeroTouchDemo).
+Open the serial monitor to see, after uplink, if the device successfully connects to the WiFi and to the cloud.
+Uplink the project.
    
 ### Interact with the Board via AWS
 
@@ -163,22 +149,5 @@ demonstrating this kit.
    
 ## Releases
 
-### 2018-03-19
-- Updated aws_register_signer.py to account for new datetime fields from AWS
-
-### 2017-12-19
-- Updated CA scripts to use fixed set of extensions for CSR and certificate
-- Set fixed version of pyasn1_modules as new version broke cert2certdef.py
-
-### 2017-11-17
-- Updated firmware to v2.2.4 to bring in ATECC608A support with CryptoAuthLib
-  release 3.
-- Firmware now supports automatic pre-configuration of new ATECC508A and
-  ATECC608A devices.
-- Fixed a memory leak in the JSON parsing.
-
-### 2017-9-26
-- Updated firmware to v2.2.2 to resolve DNS lookup issue
-
-### 2017-9-18
-- Initial release of software and firmware v2.2.1
+### 2018-07-20
+- Initial release
