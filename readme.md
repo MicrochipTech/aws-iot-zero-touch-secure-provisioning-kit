@@ -88,7 +88,7 @@ cloud-formation-templates folder.
 2. Enter the **AWS Access Key ID** from AWS and press enter.
 3. Enter the **Secret Access Key** from AWS and press enter.
 4. Ensure that the defualt region name matches the AWS account.
-5. Press enter for the **Default output format[None]:** promt.
+5. Press enter for the **Default output format[None]:** prompt.
 
 ### Hardware Setup
 
