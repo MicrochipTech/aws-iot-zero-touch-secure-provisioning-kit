@@ -15,7 +15,8 @@ manual referenced above will give more detailed instructions.
 
 ### Software Setup
 
-1. Clone or Download the AWS IOT Zero-Touch Secure Provisioning kit software. *Note- CryptoAuthlib is not automatically included and will need to be cloned recursively or downloaded separately from the kit software. If downloaded separately, the files will need to be placed in firmware\SAMG55\AWS_IoT_Zero_Touch_SAMG55\src\cryptoauthlib
+1. Clone or Download the AWS IOT Zero-Touch Secure Provisioning kit software. 
+**Note**- *CryptoAuthlib is a submodule and is not automatically included and will need to be cloned recursively or downloaded separately from the kit software. If downloaded separately, the files will need to be placed in firmware\SAMG55\AWS_IoT_Zero_Touch_SAMG55\src\cryptoauthlib folder*
 2. Install [**AWS CLI**](https://aws.amazon.com/cli/). Used to configure AWS
    credentials for the python scripts.
 3. Install serial terminal emulator, like [**PuTTY**](https://www.chiark.greenend.org.uk/~sgtatham/putty/latest.html).
@@ -84,8 +85,10 @@ cloud-formation-templates folder.
 
 #### AWS Configuration
 1. Once AWS has been configured successfully, execute **AWS configure** in a command prompt. (part of the AWS CLI download)
-2. Enter the accessKeyID from AWS
-3. Enter the 
+2. Enter the **AWS Access Key ID** from AWS and press enter.
+3. Enter the **Secret Access Key** from AWS and press enter.
+4. Ensure that the defualt region name matches the AWS account.
+5. Press enter for the **Default output format[None]:** promt.
 
 ### Hardware Setup
 
@@ -159,13 +162,13 @@ demonstrating this kit.
 3. Run ```ca_create_signer.py``` to sign the signer CSR with the root CA.
 4. Run ```aws_register_signer.py``` to register the signer with AWS IoT.
 
-### Provision the ATECCX08A on the kit.
+### Provision the ATECCx08A on the kit.
 
 1. Run ```kit_set_wifi.py --ssid wifi-name --password wifi-password``` to
    configure wifi settings on the board. This network must have internet
    access with ports 123 (UDP, time server) and 8883 (TCP, secure MQTT) open.
 
-2. Run ```kit_provision.py``` to provision the ATECC508A on the board for AWS
+2. Run ```kit_provision.py``` to provision the ATECCx08A on the board for AWS
    IoT. After this command, the board will automatically attempt to connect to
    AWS IoT.
    
