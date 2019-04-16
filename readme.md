@@ -84,7 +84,7 @@ cloud-formation-templates folder.
 
 
 #### AWS Configuration
-1. Once AWS has been configured successfully, execute **AWS configure** in a command prompt. (part of the AWS CLI download)
+1. Once AWS has been configured successfully, Run ```aws configure``` from the command line. (part of the AWS CLI download)
 2. Enter the **AWS Access Key ID** from AWS and press enter.
 3. Enter the **Secret Access Key** from AWS and press enter.
 4. Ensure that the defualt region name matches the AWS account.
@@ -139,6 +139,8 @@ manual referenced above will give more detailed instructions.
 
 These steps will be performed from the IAM user, ZTUser, created for
 demonstrating this kit.
+
+**Note** - If the AWS CloudFormation template was used these two steps can be skipped.
 
 1. Create the **Just In Time Registration (JITR) Lambda Function**
     - Name: **ZTLambdaJITR**
