@@ -21,7 +21,7 @@ manual referenced above will give more detailed instructions.
    credentials for the python scripts.
 3. Install serial terminal emulator, like [**PuTTY**](https://www.chiark.greenend.org.uk/~sgtatham/putty/latest.html).
    Used to view status/debug information from the SAMG55.
-4. Install [**Visual C++ 2015 Build Tools**](http://landinghub.visualstudio.com/visual-cpp-build-tools).
+4. Install [**Visual C++ 2015 Build Tools**](https://visualstudio.microsoft.com/visual-cpp-build-tools/).
    This is required for one of the python packages (hidapi) installed later.
 5. Install [**Python 3**](https://www.python.org). Make sure to include
    **pip** and **tcl/tk**. PC side work is all done from python scripts.
