@@ -30,6 +30,10 @@ manual referenced above will give more detailed instructions.
   
   ### AWS Setup
 
+#### Automated Setup
+See AWS CloudFormation templates and documentation in the
+cloud-formation-templates folder.
+
 #### Manual Setup
 
 1. Log into the AWS Console for your account and select the region you want to
@@ -77,10 +81,7 @@ manual referenced above will give more detailed instructions.
      - Add policies **AWSLambdaBasicExecutionRole**,
        **AWSXrayWriteOnlyAccess**, and **ZTLambdaJITRPolicy**.
        
-#### Automated Setup
 
-See AWS CloudFormation templates and documentation in the
-cloud-formation-templates folder.
 
 
 #### AWS Configuration
