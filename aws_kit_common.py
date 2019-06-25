@@ -1,10 +1,7 @@
 import os
-import binascii
 import json
 import cryptography
-import pytz
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import ec
 
 ROOT_CA_FILENAME_BASE = 'root-ca'
@@ -37,7 +34,7 @@ def read_kit_info():
     with open(KIT_INFO_FILENAME, 'r') as f:
         json_str = f.read()
         if not json_str:
-            return {} # Empty file
+            return {}  # Empty file
         return json.loads(json_str)
 
 def save_kit_info(kit_info):
@@ -56,7 +53,7 @@ def load_or_create_key(filename, verbose=True):
                 data=f.read(),
                 password=None,
                 backend=crypto_be)
-    if priv_key == None:
+    if priv_key is None:
         # No private key loaded, generate new one
         if verbose:
             print('    No key file found, generating new key')

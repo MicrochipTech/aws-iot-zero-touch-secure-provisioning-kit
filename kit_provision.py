@@ -1,35 +1,29 @@
-import os
-import datetime
-import binascii
-import json
-import argparse
+from datetime import datetime, timezone
+from base64 import b16decode, b16encode
+from argparse import ArgumentParser
 import hid
-import cryptography
 from cryptography import x509
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives import hashes, serialization
 
 from mchp_aws_zt_kit import MchpAwsZTKitDevice
 from sim_hid_device import SimMchpAwsZTHidDevice
 from aws_kit_common import *
 
-def main():
-    # Create argument parser to document script use
-    parser = argparse.ArgumentParser(description='Provisions the kit by requesting a CSR and returning signed certificates.')
-    args = parser.parse_args()
 
+def kit_provision(is_sim=False):
     kit_info = read_kit_info()
 
     print('\nOpening AWS Zero-touch Kit Device')
-    device = MchpAwsZTKitDevice(hid.device())
-    #device = MchpAwsZTKitDevice(SimMchpAwsZTHidDevice())
+    if not is_sim:
+        device = MchpAwsZTKitDevice(hid.device())
+    else:
+        device = MchpAwsZTKitDevice(SimMchpAwsZTHidDevice())
     device.open()
 
     print('\nInitializing Kit')
     resp = device.init()
-    print('    ATECC508A SN: %s' % resp['deviceSn'])
-    print('    ATECC508A Public Key:')
+    print('    ATECCx08A SN: %s' % resp['deviceSn'])
+    print('    ATECCx08A Public Key:')
     int_size = int(len(resp['devicePublicKey']) / 2)
     print('        X: %s' % resp['devicePublicKey'][:int_size])
     print('        Y: %s' % resp['devicePublicKey'][int_size:])
@@ -72,7 +66,7 @@ def main():
 
     print('\nRequesting device CSR')
     resp = device.gen_csr()
-    device_csr = x509.load_der_x509_csr(binascii.a2b_hex(resp['csr']), crypto_be)
+    device_csr = x509.load_der_x509_csr(b16decode(resp['csr']), crypto_be)
     if not device_csr.is_signature_valid:
         raise AWSZTKitError('Device CSR has invalid signature.')
     with open(DEVICE_CSR_FILENAME, 'wb') as f:
@@ -83,8 +77,8 @@ def main():
     # Build certificate
     builder = x509.CertificateBuilder()
     builder = builder.issuer_name(signer_ca_cert.subject)
-    builder = builder.not_valid_before(datetime.datetime.now(tz=pytz.utc).replace(minute=0,second=0)) # Device cert must have minutes and seconds set to 0
-    builder = builder.not_valid_after(datetime.datetime(3000, 12, 31, 23, 59, 59)) # Should be year 9999, but this doesn't work on windows
+    builder = builder.not_valid_before(datetime.utcnow().replace(tzinfo=timezone.utc, minute=0, second=0))  # Device cert must have minutes and seconds set to 0
+    builder = builder.not_valid_after(datetime(3000, 12, 31, 23, 59, 59))  # Should be year 9999, but this doesn't work on windows
     builder = builder.subject_name(device_csr.subject)
     builder = builder.public_key(device_csr.public_key())
     # Device certificate is generated from certificate dates and public key
@@ -98,10 +92,10 @@ def main():
         critical=False)
     issuer_ski = signer_ca_cert.extensions.get_extension_for_class(x509.SubjectKeyIdentifier)
     builder = builder.add_extension(
-        x509.AuthorityKeyIdentifier.from_issuer_subject_key_identifier(issuer_ski),
+        x509.AuthorityKeyIdentifier.from_issuer_subject_key_identifier(issuer_ski.value),
         critical=False)
 
-    # Sign certificate 
+    # Sign certificate
     device_cert = builder.sign(
         private_key=signer_ca_priv_key,
         algorithm=hashes.SHA256(),
@@ -112,7 +106,7 @@ def main():
     for extension in device_cert.extensions:
         if extension.oid._name != 'subjectKeyIdentifier':
             continue # Not the extension we're looking for, skip
-        kit_info['thing_name'] = binascii.b2a_hex(extension.value.digest).decode('ascii')
+        kit_info['thing_name'] = b16encode(extension.value.digest).decode('ascii').lower()
         save_kit_info(kit_info)
         is_subject_key_id_found = True
     if not is_subject_key_id_found:
@@ -143,7 +137,19 @@ def main():
 
     print('\nDone')
 
-try:
-    main()
-except AWSZTKitError as e:
-    print(e)
+
+if __name__ == '__main__':
+    # Create argument parser to document script use
+    parser = ArgumentParser(description='Provisions the kit by requesting a CSR and returning signed certificates.')
+    parser.add_argument(
+        '--sim',
+        help='Use a simulated device instead.',
+        action='store_true'
+    )
+    args = parser.parse_args()
+
+    try:
+        kit_provision(is_sim=args.sim)
+    except AWSZTKitError as e:
+        # Print kit errors without a stack trace
+        print(e)

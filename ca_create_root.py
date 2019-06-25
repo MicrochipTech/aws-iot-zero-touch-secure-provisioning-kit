@@ -1,17 +1,13 @@
-import os
-import datetime
-import pytz
-import cryptography
+from datetime import datetime, timezone, timedelta
 from cryptography import x509
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives import hashes, serialization
 from aws_kit_common import *
 
-def main():
+
+def ca_create_root(root_ca_key_path=ROOT_CA_KEY_FILENAME, root_ca_cert_path=ROOT_CA_CERT_FILENAME):
     # Create or load a root CA key pair
     print('\nLoading root CA key')
-    root_ca_priv_key = load_or_create_key(ROOT_CA_KEY_FILENAME)
+    root_ca_priv_key = load_or_create_key(root_ca_key_path)
 
     # Create root CA certificate
     print('\nGenerating self-signed root CA certificate')
@@ -24,8 +20,8 @@ def main():
     builder = builder.issuer_name(x509.Name([
         x509.NameAttribute(x509.oid.NameOID.ORGANIZATION_NAME, u'Example Inc'),
         x509.NameAttribute(x509.oid.NameOID.COMMON_NAME, u'Example Root CA')]))
-    builder = builder.not_valid_before(datetime.datetime.now(tz=pytz.utc))
-    builder = builder.not_valid_after(builder._not_valid_before.replace(year=builder._not_valid_before.year + 25))
+    builder = builder.not_valid_before(datetime.utcnow().replace(tzinfo=timezone.utc))
+    builder = builder.not_valid_after(builder._not_valid_before + timedelta(days=365*25))
     builder = builder.subject_name(builder._issuer_name)
     builder = builder.public_key(root_ca_priv_key.public_key())
     builder = builder.add_extension(
@@ -41,13 +37,16 @@ def main():
         backend=crypto_be)
 
     # Write root CA certificate to file
-    with open(ROOT_CA_CERT_FILENAME, 'wb') as f:
+    with open(root_ca_cert_path, 'wb') as f:
         print('    Saving to ' + f.name)
         f.write(root_ca_cert.public_bytes(encoding=serialization.Encoding.PEM))
 
     print('\nDone')
 
-try:
-    main()
-except AWSZTKitError as e:
-    print(e)
+
+if __name__ == '__main__':
+    try:
+        ca_create_root()
+    except AWSZTKitError as e:
+        # Print kit errors without a stack trace
+        print(e)

@@ -1,13 +1,14 @@
 import tkinter as tk
-import argparse
+from argparse import ArgumentParser
 import time
 import json
 import boto3
 import botocore
 from aws_kit_common import *
 
+
 def aws_interact_gui(aws_profile='default'):
-    # REad kit info for the device serial number, which is used as the thing name
+    # Read kit info for the device serial number, which is used as the thing name
     kit_info = read_kit_info()
     if 'thing_name' not in kit_info:
         raise AWSZTKitError('thing_name not found in %s. Have you run kit_provision yet?' % KIT_INFO_FILENAME)
@@ -32,6 +33,7 @@ def aws_interact_gui(aws_profile='default'):
     root.wm_title('Microchip AWS Zero-Touch Kit')
     app = Application(master=root, aws_iot_data=aws_iot_data, thing_name=kit_info['thing_name'])
     app.mainloop()
+
 
 class Application(tk.Frame):
     def __init__(self, aws_iot_data, thing_name, master=None):
@@ -129,9 +131,10 @@ class Application(tk.Frame):
 
         self.after(500, self.on_update)
 
+
 if __name__ == '__main__':
     # Create argument parser to document script use
-    parser = argparse.ArgumentParser(description='Interact with the thing through AWS')
+    parser = ArgumentParser(description='Interact with the thing through AWS')
     parser.add_argument(
         '--profile',
         dest='profile',

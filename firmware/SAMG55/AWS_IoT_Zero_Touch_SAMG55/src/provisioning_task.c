@@ -1,45 +1,28 @@
 /**
- *
  * \file
- *
  * \brief Provisioning FreeRTOS Task Functions
  *
- * Copyright (c) 2016-2017 Atmel Corporation. All rights reserved.
- *
- * \asf_license_start
+ * \copyright (c) 2017-2019 Microchip Technology Inc. and its subsidiaries.
  *
  * \page License
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
+ * Subject to your compliance with these terms, you may use Microchip software
+ * and any derivatives exclusively with Microchip products. It is your
+ * responsibility to comply with third party license terms applicable to your
+ * use of third party software (including open source software) that may
+ * accompany Microchip software.
  *
- * 1. Redistributions of source code must retain the above copyright notice,
- *    this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- *
- * 3. The name of Atmel may not be used to endorse or promote products derived
- *    from this software without specific prior written permission.
- *
- * 4. This software may only be redistributed and used in connection with an
- *    Atmel microcontroller product.
- *
- * THIS SOFTWARE IS PROVIDED BY ATMEL "AS IS" AND ANY EXPRESS OR IMPLIED
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT ARE
- * EXPRESSLY AND SPECIFICALLY DISCLAIMED. IN NO EVENT SHALL ATMEL BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- *
- * \asf_license_stop
- *
+ * THIS SOFTWARE IS SUPPLIED BY MICROCHIP "AS IS". NO WARRANTIES, WHETHER
+ * EXPRESS, IMPLIED OR STATUTORY, APPLY TO THIS SOFTWARE, INCLUDING ANY IMPLIED
+ * WARRANTIES OF NON-INFRINGEMENT, MERCHANTABILITY, AND FITNESS FOR A
+ * PARTICULAR PURPOSE. IN NO EVENT WILL MICROCHIP BE LIABLE FOR ANY INDIRECT,
+ * SPECIAL, PUNITIVE, INCIDENTAL OR CONSEQUENTIAL LOSS, DAMAGE, COST OR EXPENSE
+ * OF ANY KIND WHATSOEVER RELATED TO THE SOFTWARE, HOWEVER CAUSED, EVEN IF
+ * MICROCHIP HAS BEEN ADVISED OF THE POSSIBILITY OR THE DAMAGES ARE
+ * FORESEEABLE. TO THE FULLEST EXTENT ALLOWED BY LAW, MICROCHIP'S TOTAL
+ * LIABILITY ON ALL CLAIMS IN ANY WAY RELATED TO THIS SOFTWARE WILL NOT EXCEED
+ * THE AMOUNT OF FEES, IF ANY, THAT YOU HAVE PAID DIRECTLY TO MICROCHIP FOR
+ * THIS SOFTWARE.
  */
 
 #include <stdbool.h>
@@ -61,7 +44,7 @@
 #include "usb_hid.h"
 #include "version.h"
 #include "ecc_configure.h"
-
+#include "atca_execution.h"
 #include "atca_cfgs.h"
 
 // Defines
@@ -84,128 +67,6 @@ SemaphoreHandle_t g_provisioning_mutex;
 //! Mutable device description
 ATCAIfaceCfg      g_crypto_device;
 
-static uint16_t cryptoauthlib_get_execution_time(uint8_t command_opcode)
-{
-    uint16_t execution_time;
-    ATCACommand commandObj = _gDevice->mCommands;
-    
-    execution_time = atGetExecTime(command_opcode, commandObj);
-    
-    return execution_time;
-}
-
-static uint16_t cryptoauthlib_get_response_message_length(uint8_t command_opcode,
-                                                          uint8_t command_param1,
-                                                          uint16_t command_param2)
-{
-    uint16_t response_message_length = 0;
-    ATCAPacket packet;
-    ATCA_STATUS status = ATCA_GEN_FAIL;
-    
-    ATCACommand commandObj = _gDevice->mCommands;
-    
-    packet.param1 = command_param1;
-    packet.param2 = command_param2;
-    
-    switch (command_opcode)
-    {
-    case ATCA_CHECKMAC:
-        status = atCheckMAC(commandObj, &packet);
-        break;
-        
-    case ATCA_DERIVE_KEY:
-        status = atDeriveKey(commandObj, &packet, false);
-        break;
-        
-    case ATCA_INFO:
-        status = atInfo(commandObj, &packet);
-        break;
-        
-    case ATCA_GENDIG:
-        status = atGenDig(commandObj, &packet, false);
-        break;
-        
-    case ATCA_GENKEY:
-        status = atGenKey(commandObj, &packet);
-        break;
-        
-    case ATCA_HMAC:
-        status = atHMAC(commandObj, &packet);
-        break;
-        
-    case ATCA_LOCK:
-        status = atLock(commandObj, &packet);
-        break;
-        
-    case ATCA_MAC:
-        status = atMAC(commandObj, &packet);
-        break;
-        
-    case ATCA_NONCE:
-        status = atNonce(commandObj, &packet);
-        break;
-        
-    case ATCA_PAUSE:
-        status = atPause(commandObj, &packet);
-        break;
-        
-    case ATCA_PRIVWRITE:
-        status = atPrivWrite(commandObj, &packet);
-        break;
-        
-    case ATCA_RANDOM:
-        status = atRandom(commandObj, &packet);
-        break;
-        
-    case ATCA_READ:
-        status = atRead(commandObj, &packet);
-        break;
-        
-    case ATCA_SIGN:
-        status = atSign(commandObj, &packet);
-        break;
-        
-    case ATCA_UPDATE_EXTRA:
-        status = atUpdateExtra(commandObj, &packet);
-        break;
-        
-    case ATCA_VERIFY:
-        status = atVerify(commandObj, &packet);
-        break;
-        
-    case ATCA_WRITE:
-        status = atWrite(commandObj, &packet, false);
-        break;
-        
-    case ATCA_ECDH:
-        status = atECDH(commandObj, &packet);
-        break;
-        
-    case ATCA_COUNTER:
-        status = atCounter(commandObj, &packet);
-        break;
-        
-    case ATCA_SHA:
-        status = atSHA(commandObj, &packet, 0); //TODO this zero may be able to be handled better
-        break;
-        
-    default:
-        // Do nothing
-        break;
-    }
-
-    // Set the response message length
-    if (status == ATCA_SUCCESS)
-    {
-        response_message_length = packet.rxsize;
-    }
-    else
-    {
-        response_message_length = ATCA_RSP_SIZE_MIN;
-    }
-    
-    return response_message_length;
-}
 
 /**
  * \brief Initializes the CryptoAuthLib library
@@ -225,6 +86,8 @@ static ATCA_STATUS cryptoauthlib_init(void)
     // Initialize the CryptoAuthLib library
     g_crypto_device.atcai2c.slave_address = AWS_ECCx08A_I2C_ADDRESS;
     g_crypto_device.devtype = ATECC508A;
+    g_crypto_device.atcai2c.bus = 0;
+    g_crypto_device.atcai2c.baud = 400000;
     
     do 
     {
@@ -1512,58 +1375,40 @@ enum kit_protocol_status kit_device_talk(uint32_t device_handle,
                                          uint16_t *message_length)
 {
     ATCA_STATUS status = ATCA_GEN_FAIL;
-    uint8_t command_opcode = 0;
-    uint8_t command_param1 = 0;
-    uint16_t command_param2 = 0;
-    uint8_t buffer[ATCA_CMD_SIZE_MAX];
-    uint16_t max_message_length = kit_interpreter_get_max_message_length();
+    ATCAPacket packet;
 
     if ((message == NULL) || (message_length == NULL))
     {
         return KIT_STATUS_INVALID_PARAM;
     }
 
-    // Get the command message parameters
-    command_opcode = message[1];
-    command_param1 = message[2];
-    
-    command_param2 =  (message[4] << 8);
-    command_param2 |= message[3];
-    
-    // Copy the command message to the buffer
-    memset(&buffer[0], 0, sizeof(buffer));
-    memcpy(&buffer[1], &message[0], *message_length);
-    
-    // Send the wakeup command to the device
-    status = atcab_wakeup();
-    if (status != ATCA_SUCCESS)
+    if (*message_length > sizeof(packet) - 1)
     {
-        return KIT_STATUS_COMM_FAIL;
-    }
-            
-    // Send the command message to the device
-    status = atsend(_gDevice->mIface, buffer, (int)*message_length);
-    if (status != ATCA_SUCCESS)
-    {
-        return KIT_STATUS_COMM_FAIL;
-    }
-    
-    // delay the appropriate amount of time for command to execute
-    atca_delay_ms(cryptoauthlib_get_execution_time(command_opcode));
-    
-    // Reset the message information
-    memset(&message[0], 0, max_message_length);
-    *message_length = cryptoauthlib_get_response_message_length(command_opcode,
-                                                                command_param1,
-                                                                command_param2);
-    
-    // Retrieve the response message from the device
-    status = atreceive(_gDevice->mIface, message, message_length);
-    if (status != ATCA_SUCCESS)
-    {
-        return KIT_STATUS_COMM_FAIL;
+        // Message length is longer than the max expected packet length
+        return KIT_STATUS_INVALID_SIZE;
     }
 
+    memset(&packet, 0, sizeof(packet));
+    memcpy(&packet.opcode, message, *message_length);
+
+    status = atca_execute_command(&packet, atcab_get_device());
+    if (status != ATCA_SUCCESS)
+    {
+        if (packet.data[ATCA_COUNT_IDX] == 4)
+        {
+            // Want to return the device error and not raise a kit error
+            status = KIT_STATUS_SUCCESS;
+        }
+        else
+        {
+            return KIT_STATUS_COMM_FAIL;
+        }
+    }
+
+    // Return the response
+    *message_length = packet.data[ATCA_COUNT_IDX];
+    memcpy(message, packet.data, *message_length);
+    
     return KIT_STATUS_SUCCESS;
 }
 
@@ -1777,27 +1622,30 @@ void provisioning_task(void *params)
             
             // Print the incoming command message
             console_print_kit_protocol_message("Incoming Kit Protocol command message:",
-                                               g_usb_buffer, g_usb_buffer_length);
+                                               g_usb_message_buffer, g_usb_message_buffer_length);
             
-            kit_interpreter_handle_message((char*)g_usb_buffer, &g_usb_buffer_length);
+            kit_interpreter_handle_message((char*)g_usb_message_buffer, &g_usb_message_buffer_length);
 
             // Print the outgoing response message
             console_print_kit_protocol_message("Outgoing Kit Protocol response message:",
-                                               g_usb_buffer, g_usb_buffer_length);
+                                               g_usb_message_buffer, g_usb_message_buffer_length);
             
             // Send the AWS IoT Zero Touch response message
-            response_sent = usb_send_response_message(g_usb_buffer, g_usb_buffer_length);
+            response_sent = usb_send_response_message(g_usb_message_buffer, g_usb_message_buffer_length);
             if (response_sent == false)
             {
                 // Print error message
                 console_print_error_message("Unable to send the outgoing Kit Protocol response message.");
             }
+            // Reset message buffer
+            g_usb_message_buffer_length = 0;
+            g_usb_message_received = false;
 
             // Turn the processing LED off
             led_set_processing_state(PROCESSING_LED_OFF);
 
             // Release the provisioning mutex
-            xSemaphoreGive(g_provisioning_mutex);        
+            xSemaphoreGive(g_provisioning_mutex);
         }
 
         // Delay the Provisioning task

@@ -3,12 +3,11 @@ import re
 import time
 import binascii
 import json
-import cryptography
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.serialization import Encoding
-from cryptography.hazmat.primitives.asymmetric import ec
 from aws_kit_common import crypto_be, load_or_create_key
+
 
 class SimMchpAwsZTHidDevice:
     def __init__(self):
@@ -21,7 +20,7 @@ class SimMchpAwsZTHidDevice:
             with open('sim-device.json', 'rb') as f:
                 self.state = json.loads(f.read().decode('ascii'))
         else:
-            self.state = {'sn':'0123112233445566A5'}
+            self.state = {'sn': '0123112233445566A5'}
             self.save_state()
 
     def save_state(self):
@@ -32,11 +31,11 @@ class SimMchpAwsZTHidDevice:
         return
 
     def write(self, buff):
-        self.cmd_buff += buff[1:] # skip report id
+        self.cmd_buff += buff[1:]  # skip report id
         # Kit protocol command is complete on newline
         if b'\n' in self.cmd_buff:
             self.process_cmd(self.cmd_buff.decode('ascii'))
-            self.cmd_buff = b'' # clear command buffer for next command
+            self.cmd_buff = b''  # clear command buffer for next command
 
     def read(self, max_length, timeout_ms=0):
         if len(self.send_reports) <= 0:
@@ -46,13 +45,13 @@ class SimMchpAwsZTHidDevice:
         return self.send_reports.pop(0)
 
     def process_cmd(self, raw_cmd):
-        m = re.search('^([^(]+)\(([^)]*)\)', raw_cmd)
+        m = re.search(r'^([^(]+)\(([^)]*)\)', raw_cmd)
         target = m.group(1)
         data = m.group(2)
         if target == 'board:app':
             self.process_app_cmd(data)
         else:
-            self.send_reply('C0()') # Unknown command
+            self.send_reply('C0()')  # Unknown command
 
     def process_app_cmd(self, raw_app_cmd):
         cmd = json.loads(binascii.a2b_hex(raw_app_cmd).decode('ascii'))
@@ -64,6 +63,8 @@ class SimMchpAwsZTHidDevice:
             self.sim_save_credentials(cmd)
         elif cmd['method'] == 'setWifi':
             self.sim_set_wifi(cmd)
+        elif cmd['method'] == 'resetKit':
+            self.sim_reset_kit(cmd)
         else:
             self.send_app_reply_error(cmd['id'], 2, 'Unknown command')
 
@@ -79,15 +80,15 @@ class SimMchpAwsZTHidDevice:
         self.send_reply('%s(%s)\n' % (status_str, data_str))
 
     def send_app_reply_error(self, id, error_code, error_msg):
-        reply = {'id':id, 'result':None, 'error':{'error_code':error_code ,'error_msg':error_msg}}
+        reply = {'id': id, 'result': None, 'error': {'error_code': error_code, 'error_msg': error_msg}}
         self.send_kit_reply(0, bytes(json.dumps(reply), encoding='ascii'))
 
     def send_app_reply(self, id, results):
-        self.send_kit_reply(0, bytes(json.dumps({'id':id, 'result':results, 'error':None}), encoding='ascii'))
+        self.send_kit_reply(0, bytes(json.dumps({'id': id, 'result': results, 'error': None}), encoding='ascii'))
 
     def sim_init(self, cmd):
         if cmd['params']['version'] != '2.0.0':
-            send_app_reply_error(cmd['id'], 256, 'Unsupported version')
+            self.send_app_reply_error(cmd['id'], 256, 'Unsupported version')
         results = {}
         results['deviceSn'] = self.state['sn']
         pub_nums = self.key.public_key().public_numbers()
@@ -106,7 +107,7 @@ class SimMchpAwsZTHidDevice:
             algorithm=hashes.SHA256(),
             backend=crypto_be)
 
-        results = {'csr' : binascii.b2a_hex(csr.public_bytes(encoding=Encoding.DER)).decode('ascii')}
+        results = {'csr': binascii.b2a_hex(csr.public_bytes(encoding=Encoding.DER)).decode('ascii')}
         self.send_app_reply(cmd['id'], results)
 
     def sim_save_credentials(self, cmd):
@@ -119,6 +120,11 @@ class SimMchpAwsZTHidDevice:
 
     def sim_set_wifi(self, cmd):
         self.state['ssid'] = cmd['params']['ssid']
-        self.state['psk']  = cmd['params']['psk']
+        self.state['psk'] = cmd['params']['psk']
+        self.save_state()
+        self.send_app_reply(cmd['id'], {})
+
+    def sim_reset_kit(self, cmd):
+        self.state = {'sn': '0123112233445566A5'}
         self.save_state()
         self.send_app_reply(cmd['id'], {})

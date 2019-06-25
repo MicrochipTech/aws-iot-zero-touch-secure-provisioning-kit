@@ -1,16 +1,12 @@
-import os
-import datetime
-import cryptography
 from cryptography import x509
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.asymmetric import ec
+from cryptography.hazmat.primitives import hashes, serialization
 from aws_kit_common import *
 
-def main():
+
+def ca_create_signer_csr(signer_ca_key_path=SIGNER_CA_KEY_FILENAME, signer_ca_csr_path=SIGNER_CA_CSR_FILENAME):
     # Load or create a signer CA key pair
     print('\nLoading signer CA key')
-    signer_ca_priv_key = load_or_create_key(SIGNER_CA_KEY_FILENAME)
+    signer_ca_priv_key = load_or_create_key(signer_ca_key_path)
 
     print('\nGenerating signer CA CSR')
     builder = x509.CertificateSigningRequestBuilder()
@@ -29,11 +25,12 @@ def main():
         backend=crypto_be)
 
     # Save CSR
-    with open(SIGNER_CA_CSR_FILENAME, 'wb') as f:
+    with open(signer_ca_csr_path, 'wb') as f:
         print('    Saving to ' + f.name)
         f.write(signer_ca_csr.public_bytes(encoding=serialization.Encoding.PEM))
 
     print('\nDone')
+
 
 def add_signer_extensions(builder, public_key=None, authority_cert=None):
     if public_key == None:
@@ -59,23 +56,26 @@ def add_signer_extensions(builder, public_key=None, authority_cert=None):
     builder = builder.add_extension(
         x509.SubjectKeyIdentifier.from_public_key(public_key),
         critical=False)
-    subj_key_id_ext = builder._extensions[-1] # Save newly created subj key id extension
+    subj_key_id_ext = builder._extensions[-1]  # Save newly created subj key id extension
 
     if authority_cert:
         # We have an authority certificate, use its subject key id
         builder = builder.add_extension(
             x509.AuthorityKeyIdentifier.from_issuer_subject_key_identifier(
-                authority_cert.extensions.get_extension_for_class(x509.SubjectKeyIdentifier)),
+                authority_cert.extensions.get_extension_for_class(x509.SubjectKeyIdentifier).value),
             critical=False)
     else:
         # No authority cert, assume this is a CSR and just use its own subject key id
         builder = builder.add_extension(
-            x509.AuthorityKeyIdentifier.from_issuer_subject_key_identifier(subj_key_id_ext),
+            x509.AuthorityKeyIdentifier.from_issuer_subject_key_identifier(subj_key_id_ext.value),
             critical=False)
     
     return builder
 
-try:
-    main()
-except AWSZTKitError as e:
-    print(e)
+
+if __name__ == '__main__':
+    try:
+        ca_create_signer_csr()
+    except AWSZTKitError as e:
+        # Print kit errors without a stack trace
+        print(e)

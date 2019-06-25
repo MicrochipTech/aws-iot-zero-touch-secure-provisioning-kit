@@ -1,45 +1,28 @@
 /**
- *
  * \file
+ * \brief USB HID functions
  *
- * \brief USB HID Functions
- *
- * Copyright (c) 2016-2017 Atmel Corporation. All rights reserved.
- *
- * \asf_license_start
+ * \copyright (c) 2017-2019 Microchip Technology Inc. and its subsidiaries.
  *
  * \page License
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
+ * Subject to your compliance with these terms, you may use Microchip software
+ * and any derivatives exclusively with Microchip products. It is your
+ * responsibility to comply with third party license terms applicable to your
+ * use of third party software (including open source software) that may
+ * accompany Microchip software.
  *
- * 1. Redistributions of source code must retain the above copyright notice,
- *    this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright notice,
- *    this list of conditions and the following disclaimer in the documentation
- *    and/or other materials provided with the distribution.
- *
- * 3. The name of Atmel may not be used to endorse or promote products derived
- *    from this software without specific prior written permission.
- *
- * 4. This software may only be redistributed and used in connection with an
- *    Atmel microcontroller product.
- *
- * THIS SOFTWARE IS PROVIDED BY ATMEL "AS IS" AND ANY EXPRESS OR IMPLIED
- * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT ARE
- * EXPRESSLY AND SPECIFICALLY DISCLAIMED. IN NO EVENT SHALL ATMEL BE LIABLE FOR
- * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
- * STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
- * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- *
- * \asf_license_stop
- *
+ * THIS SOFTWARE IS SUPPLIED BY MICROCHIP "AS IS". NO WARRANTIES, WHETHER
+ * EXPRESS, IMPLIED OR STATUTORY, APPLY TO THIS SOFTWARE, INCLUDING ANY IMPLIED
+ * WARRANTIES OF NON-INFRINGEMENT, MERCHANTABILITY, AND FITNESS FOR A
+ * PARTICULAR PURPOSE. IN NO EVENT WILL MICROCHIP BE LIABLE FOR ANY INDIRECT,
+ * SPECIAL, PUNITIVE, INCIDENTAL OR CONSEQUENTIAL LOSS, DAMAGE, COST OR EXPENSE
+ * OF ANY KIND WHATSOEVER RELATED TO THE SOFTWARE, HOWEVER CAUSED, EVEN IF
+ * MICROCHIP HAS BEEN ADVISED OF THE POSSIBILITY OR THE DAMAGES ARE
+ * FORESEEABLE. TO THE FULLEST EXTENT ALLOWED BY LAW, MICROCHIP'S TOTAL
+ * LIABILITY ON ALL CLAIMS IN ANY WAY RELATED TO THIS SOFTWARE WILL NOT EXCEED
+ * THE AMOUNT OF FEES, IF ANY, THAT YOU HAVE PAID DIRECTLY TO MICROCHIP FOR
+ * THIS SOFTWARE.
  */
 
 #include <string.h>
@@ -54,9 +37,16 @@
 #define USB_DELAY              (5 / portTICK_PERIOD_MS)
 
 // Global variables
-uint8_t  g_usb_buffer[KIT_MESSAGE_SIZE_MAX];  //! The USB message buffer
-uint16_t g_usb_buffer_length = 0;             //! The USB message buffer length
-bool     g_usb_message_received = false;      //! Whether the USB message was received
+// These variables are used for a message currently being received
+uint8_t  g_usb_rx_buffer[KIT_MESSAGE_SIZE_MAX]; //! USB received message buffer
+uint16_t g_usb_rx_buffer_length = 0;            //! Size of message in buffer
+
+// These are used for the message currently being processed
+bool     g_usb_message_received = false;        //! Whether a complete message was received
+uint8_t  g_usb_message_buffer[KIT_MESSAGE_SIZE_MAX];
+uint16_t g_usb_message_buffer_length = 0;
+
+bool g_usb_error = false;
 
 /**
  * \brief Initializes the USB HID interface.
@@ -73,10 +63,10 @@ void usb_hid_init(void)
 bool usb_send_response_message(uint8_t *response, uint16_t response_length)
 {
     bool usb_report_sent = false;
-    uint16_t current_response_location = 0;
+    size_t current_response_location = 0;
     uint8_t usb_report[UDI_HID_REPORT_OUT_SIZE];
-    uint8_t usb_report_length = 0;
-    uint8_t send_retries = 5;
+    size_t usb_report_length = 0;
+    int send_retries = 5;
     
     if (response == NULL)
     {
@@ -89,18 +79,21 @@ bool usb_send_response_message(uint8_t *response, uint16_t response_length)
         // Create the USB report
         usb_report_length = min(UDI_HID_REPORT_OUT_SIZE, response_length);
         
-        memset(&usb_report[0], 0, sizeof(usb_report));
-        memcpy(&usb_report[0], &response[current_response_location], 
-               usb_report_length);
+        memset(usb_report, 0, sizeof(usb_report));
+        memcpy(usb_report, &response[current_response_location], usb_report_length);
         
         usb_report_sent = udi_hid_generic_send_report_in(usb_report);
         if (usb_report_sent == true)
         {
             current_response_location += usb_report_length;
-            response_length -= usb_report_length;            
+            response_length -= usb_report_length;
 
-            // Delay for 5ms
-            vTaskDelay(USB_DELAY);
+            // No delay for last message
+            if (response_length != 0)
+            {
+                // Delay for 5ms
+                vTaskDelay(USB_DELAY);
+            }
         }
         else
         {
@@ -117,13 +110,8 @@ bool usb_send_response_message(uint8_t *response, uint16_t response_length)
                 // Break the while loop
                 break;
             }
-        }  
+        }
     }
-    
-    // Clear the USB message buffer
-    memset(&g_usb_buffer[0], 0, sizeof(g_usb_buffer));
-    g_usb_buffer_length = 0;
-    g_usb_message_received = false;
     
     return usb_report_sent;
 }
@@ -165,15 +153,42 @@ void usb_hid_report_out_callback(uint8_t *report)
     
     for (uint32_t index = 0; index < UDI_HID_REPORT_OUT_SIZE; index++)
     {
-        // Save the incoming USB packet
-        g_usb_buffer[g_usb_buffer_length] = report[index];
-        g_usb_buffer_length++;
-        
-        // Check if the USB message was received
-        if (report[index] == USB_MESSAGE_DELIMITER)
+        if (g_usb_rx_buffer_length >= sizeof(g_usb_rx_buffer)-1)
         {
-            g_usb_message_received = true;
-            break;
+            // Incoming message is too long (corrupted?)
+            g_usb_rx_buffer_length = 0;
+            g_usb_error = true;
+        }
+
+        if (!g_usb_error)
+        {
+            // Save the incoming USB packet
+            g_usb_rx_buffer[g_usb_rx_buffer_length] = report[index];
+            g_usb_rx_buffer_length++;
+        
+            // Check if the USB message was received
+            if (report[index] == USB_MESSAGE_DELIMITER)
+            {
+                // Copy completed message to message buffer
+                g_usb_message_buffer_length = g_usb_rx_buffer_length;
+                memcpy(g_usb_message_buffer, g_usb_rx_buffer, g_usb_rx_buffer_length);
+                g_usb_message_buffer[g_usb_rx_buffer_length] = 0; // Null terminate, just in case
+                g_usb_message_received = true;
+
+                // Reset receive buffer
+                g_usb_rx_buffer_length = 0;
+                break;
+            }
+        }
+        else
+        {
+            // USB message processing is an error state. Wait for next delimiter.
+            if (report[index] == USB_MESSAGE_DELIMITER)
+            {
+                g_usb_error = false;
+                g_usb_rx_buffer_length = 0;
+                break;
+            }
         }
     }
 }
